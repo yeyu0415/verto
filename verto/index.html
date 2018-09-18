@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="gb2312">
+    <title>Verto - Demo Application</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Demo Application using Verto jQuery lib.">
+    <meta name="author" content="Your name here!">
+
+   
+	<script src="jquery.min.js"></script>
+    <script src="jquery.json.min.js"></script>
+	
+	<script src="jquery.verto.js"></script>
+    <script src="jquery.FSRTC.js"></script>
+    <script src="jquery.jsonrpcclient.js"></script>
+	<script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+	<script>
+	(function() {
+  var vertoHandle, vertoCallbacks, currentCall;
+
+  $.verto.init({}, bootstrap);
+
+  function bootstrap(status) {
+    vertoHandle = new jQuery.verto({
+      login: '1005@192.168.6.18',
+      passwd: '1234',
+      socketUrl: 'wss://192.168.6.18:8082',
+	  tag: "myvideo",//音频/视频显示
+	  ringTag: "ringVideo",//铃声响铃
+      ringFile: 'sounds/ring.wav',//铃声
+      ringSleep:'12000',//铃声间隔
+      deviceParams: {
+         useStereo: "any",
+         useMic: "any",
+         useSpeak: "any"
+      },
+	  audioParams: {
+	    googAutoGainControl: false,
+	    googNoiseSuppression: false,
+	    googHighpassFilter: false
+	},
+      iceServers: true,
+    }, vertoCallbacks);
+
+    document.getElementById("make-call").addEventListener("click", makeCall);
+    document.getElementById("hang-up-call").addEventListener("click", hangupCall);
+    document.getElementById("answer-call").addEventListener("click", answerCall);
+    document.getElementById("onloadAudio").addEventListener("click", onloadAudio);
+
+
+
+  };
+function onloadAudio(){
+  var objSelect=document.getElementById("mySelect");
+  var audio=$.verto.audioOutDevices;
+  var i=1;
+	 for(var key in audio){
+	 var deviceInfo=audio[key];
+	  var objOption = new Option(deviceInfo.label,deviceInfo.id);	
+	  objSelect.add(objOption,i);
+	  i++;
+	 }
+}
+
+
+function aaa(){
+var confMan=$.verto.confMan();
+}
+  function makeCall() {
+   var sendPhone=document.getElementById("sendPhone").value;
+   
+    currentCall = vertoHandle.newCall({
+      destination_number: sendPhone,
+      caller_id_name: "Test Guy",
+      caller_id_number: "1005",
+      outgoingBandwidth: "default",
+      incomingBandwidth: "default",
+      useStereo: "any",
+      useMic: "any",
+      useSpeak: "any",
+      dedEnc: false,
+      userVariables: {
+        avatar: "",
+        email: "test@test.com"
+      }
+    });
+  };
+
+  function hangupCall() {
+  if(currentCall!=null){
+//playVid();
+    currentCall.hangup();
+}
+  };
+
+  function answerCall() {
+  
+//document.getElementById("myvideo").src="";
+//document.getElementById("myvideo").srcObject="";
+
+
+  var options={
+  useStereo: "any",
+		    useCamera: "any",
+		    useMic: "any",
+		    useSpeak: "any"
+
+  }
+if(currentCall!=null){
+//playVid();
+    currentCall.answer(options);
+}
+  };
+
+  vertoCallbacks = {
+    onWSLogin: onWSLogin,
+    onWSClose: onWSClose,
+	onMessage: onMessage,
+    onDialogState: onDialogState,
+	onEvent: onEvent
+  }
+function onEvent(v, e) {
+        console.debug("GOT EVENT", e);
+    }
+  function onWSLogin(verto, success) {
+
+ var params={
+   "laData":{"canvasCount":1,
+   "role":"moderator",
+   "laChannel":"laChannel",
+    "laName":"laName",
+   "modChannel":"modChannel"
+},
+"mainModID":"#mainModID",
+"tableID":"#tableID",
+"hasVid":true
+}
+    
+    //$.verto.confMan(verto,params);
+    console.log('onWSLogin', success);
+  };
+
+  function onWSClose(verto, success) {
+    console.log('onWSClose', success);
+  };
+
+var start_time=0;
+var end_time=0;
+  function onDialogState(dialog) {
+    console.debug('onDialogState', dialog);
+    switch (dialog.state.name) {
+    case "new":
+	  console.log("Call new");
+      break;
+    case "requesting":
+	  console.log("Call requesting");
+      break;
+    case "trying":
+	  console.log("Call trying");
+      break;
+    case "recovering":
+	  console.log("Call recovering");
+      break;
+    case "answering":
+	  console.log("Call answering");
+      break;
+    case "early":
+	  console.log("Call early");
+      break;
+    case "active":
+       start_time=new Date().getTime();
+       console.log("Call active");
+      break;
+    case "held":
+       console.log("Call held");
+      break;
+    case "hangup":
+      
+      console.log("Call hangup");
+      break;
+    case "destroy":
+    end_time=new Date().getTime();
+    alert((end_time-start_time)/1000);
+    console.log("Call destroy");
+	currentCall=null;
+      break;
+    case "ringing":
+      console.log("Call ringing");
+     if(!currentCall) {
+      currentCall = dialog;
+     }
+      alert('Someone is calling you, answer!');
+     break;
+     case "purge":
+     console.log("Call purge");
+     break;
+  }
+
+           
+
+  };
+  
+ function playVid()
+  {
+  var audio = document.getElementById('myaudio'); 
+if(audio!==null){ 
+if(audio.paused){ 
+audio.currentTime=0;
+audio.play();// 播放 
+}else{
+audio.pause();// 暂停
+}
+} 
+  }
+
+  function onMessage(verto, dialog, message, data) {
+  switch (message) {
+    case $.verto.enum.message.pvtEvent:
+      if (data.pvtData) {
+        switch (data.pvtData.action) {
+          // This client has joined the live array for the conference.
+          case "conference-liveArray-join":
+            // With the initial live array data from the server, you can
+            // configure/subscribe to the live array.
+            initLiveArray(verto, dialog, data);
+            break;
+          // This client has left the live array for the conference.
+          case "conference-liveArray-part":
+            // Some kind of client-side wrapup...
+            break;
+        }
+      }
+      break;
+    // TODO: Needs doc.
+    case $.verto.enum.message.info:
+      break;
+    // TODO: Needs doc.
+    case $.verto.enum.message.display:
+      break;
+    case $.verto.enum.message.clientReady:
+      // 1.8.x+
+      // Fired when the server has finished re-attaching any active sessions.
+      // data.reattached_sessions contains an array of session IDs for all
+      // sessions that were re-attached.
+      break;
+  }
+}
+
+
+})();
+	</script>
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>Verto - Demo Application</h1>
+	拨打电话：<input type="text" value="" id="sendPhone"></input>
+  <button id="make-call">拨打电话</button>
+  <button id="hang-up-call">挂断</button>
+  <button id="answer-call">接听</button>
+  <button id="onloadAudio">加载扬声器</button>
+  <select id="mySelect">
+  </select>
+    </div> <!-- /container -->
+
+    <!--<script src="main.js"></script>-->
+	<video id="myvideo" autoplay="autoplay" style="object-fit: inherit; display: none; height: 487px;" src=""></video>
+		<video id="ringVideo" autoplay="autoplay" style="object-fit: inherit; display: none; height: 487px;" src=""></video>
+
+  
+ <!--
+<audio src="sounds/ring.wav" id="myaudio">
+您的浏览器不支持 audio 标签。
+</audio>-->
+
+<div id="mainModID"><div>
+
+<table id="tableID"></table>
+  </body>
+</html>
