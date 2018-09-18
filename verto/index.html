@@ -47,13 +47,15 @@
     document.getElementById("hang-up-call").addEventListener("click", hangupCall);
     document.getElementById("answer-call").addEventListener("click", answerCall);
     document.getElementById("onloadAudio").addEventListener("click", onloadAudio);
-
+    document.getElementById("onloadMaikefeng").addEventListener("click", onloadMaikefeng);
+    document.getElementById("onloadVideo").addEventListener("click", onloadVideo);
 
 
   };
 function onloadAudio(){
   var objSelect=document.getElementById("mySelect");
   var audio=$.verto.audioOutDevices;
+ 
   var i=1;
 	 for(var key in audio){
 	 var deviceInfo=audio[key];
@@ -63,13 +65,36 @@ function onloadAudio(){
 	 }
 }
 
+function onloadMaikefeng(){
+  var objSelect=document.getElementById("maikefeng");
+  var audio=$.verto.audioInDevices;
+  var i=1;
+	 for(var key in audio){
+	 var deviceInfo=audio[key];
+	  var objOption = new Option(deviceInfo.label,deviceInfo.id);	
+	  objSelect.add(objOption,i);
+	  i++;
+	 }
+}
 
-function aaa(){
-var confMan=$.verto.confMan();
+function onloadVideo(){
+  var objSelect=document.getElementById("MyselVideo");
+  var audio=$.verto.videoDevices;
+
+  var i=1;
+	 for(var key in audio){
+	 var deviceInfo=audio[key];
+	  var objOption = new Option(deviceInfo.label,deviceInfo.id);	
+	  objSelect.add(objOption,i);
+	  i++;
+	 }
 }
   function makeCall() {
    var sendPhone=document.getElementById("sendPhone").value;
-   
+   if(sendPhone==null || sendPhone==""){
+   alert("输入电话号码");
+   return;
+   }
     currentCall = vertoHandle.newCall({
       destination_number: sendPhone,
       caller_id_name: "Test Guy",
@@ -85,12 +110,19 @@ var confMan=$.verto.confMan();
         email: "test@test.com"
       }
     });
+		 document.getElementById("hang-up-call").style.display="block";
+
   };
 
   function hangupCall() {
   if(currentCall!=null){
 //playVid();
     currentCall.hangup();
+	document.getElementById("answer-call").style.display="none";
+    document.getElementById("hang-up-call").style.display="none";
+
+}else{
+alert("未有接听电话");
 }
   };
 
@@ -110,6 +142,9 @@ var confMan=$.verto.confMan();
 if(currentCall!=null){
 //playVid();
     currentCall.answer(options);
+	document.getElementById("answer-call").style.display="none";
+}else{
+alert("未有接听电话");
 }
   };
 
@@ -181,7 +216,9 @@ var end_time=0;
       break;
     case "destroy":
     end_time=new Date().getTime();
-    alert((end_time-start_time)/1000);
+	  if(start_time>0){
+      alert((end_time-start_time)/1000);
+	  }
     console.log("Call destroy");
 	currentCall=null;
       break;
@@ -190,6 +227,9 @@ var end_time=0;
      if(!currentCall) {
       currentCall = dialog;
      }
+	 document.getElementById("answer-call").style.display="block";
+	 	 document.getElementById("hang-up-call").style.display="block";
+
       alert('Someone is calling you, answer!');
      break;
      case "purge":
@@ -257,10 +297,19 @@ audio.pause();// 暂停
       <h1>Verto - Demo Application</h1>
 	拨打电话：<input type="text" value="" id="sendPhone"></input>
   <button id="make-call">拨打电话</button>
-  <button id="hang-up-call">挂断</button>
-  <button id="answer-call">接听</button>
+  <button id="hang-up-call" style="display:none;">挂断</button>
+  <button id="answer-call"  style="display:none;">接听</button>
   <button id="onloadAudio">加载扬声器</button>
+  
+  
   <select id="mySelect">
+  </select>
+    <button id="onloadMaikefeng">加载麦克风</button>
+  <select id="maikefeng">
+  </select>
+  
+  <button id="onloadVideo">加载视频</button>
+  <select id="MyselVideo">
   </select>
     </div> <!-- /container -->
 
